@@ -311,6 +311,7 @@ class SliverReorderableGrid extends StatefulWidget {
     required this.onReorder,
     required this.gridDelegate,
     this.onReorderStart,
+    this.onWillReorder,
     this.reverse = false,
     this.proxyDecorator,
     this.autoScroll = true,
@@ -329,6 +330,9 @@ class SliverReorderableGrid extends StatefulWidget {
 
   /// {@macro flutter.widgets.reorderable_list.onReorderStart}
   final void Function(int index)? onReorderStart;
+
+  /// {@macro flutter.widgets.reorderable_list.onWillReorder}
+  final ReorderCallback? onWillReorder;
 
   /// {@macro flutter.widgets.reorderable_list.proxyDecorator}
   final ReorderItemProxyDecorator? proxyDecorator;
@@ -516,8 +520,7 @@ class SliverReorderableGridState extends State<SliverReorderableGrid>
     assert(_dragInfo == null);
 
     // if any items are already being dragged, ignore this dragstart
-    if(_items.values.any((e) => e.dragging)) return null;
-
+    if (_items.values.any((e) => e.dragging)) return null;
 
     final _ReorderableItemState item = _items[_dragIndex!]!;
     item.dragging = true;
@@ -623,6 +626,8 @@ class SliverReorderableGridState extends State<SliverReorderableGrid>
 
     if (newIndex == _insertIndex) return;
     _insertIndex = newIndex;
+
+    if (_dragIndex != null) widget.onWillReorder?.call(_dragIndex!, newIndex);
 
     for (final _ReorderableItemState item in _items.values) {
       item.updateForGap(_insertIndex!, true);
@@ -978,11 +983,8 @@ class ReorderableGridDragStartListener extends StatelessWidget {
   /// subclasses can use this to customize the drag start gesture.
   @protected
   MultiDragGestureRecognizer createRecognizer() {
-    
     return ImmediateMultiDragGestureRecognizer(debugOwner: this);
   }
-
-  
 
   void _startDragging(BuildContext context, PointerDownEvent event) {
     final SliverReorderableGridState? list =

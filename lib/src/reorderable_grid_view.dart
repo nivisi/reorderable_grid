@@ -258,6 +258,7 @@ class ReorderableGridView extends StatefulWidget {
     this.proxyDecorator,
     this.autoScroll,
     this.onReorderStart,
+    this.onWillReorder,
   })  : assert(
           children.every((Widget w) => w.key != null),
           'All children of this widget must have a key.',
@@ -309,6 +310,7 @@ class ReorderableGridView extends StatefulWidget {
     this.proxyDecorator,
     this.autoScroll,
     this.onReorderStart,
+    this.onWillReorder,
   })  : assert(itemCount >= 0),
         super(key: key);
 
@@ -337,6 +339,7 @@ class ReorderableGridView extends StatefulWidget {
     this.padding,
     required int crossAxisCount,
     required this.onReorder,
+    this.onWillReorder,
     this.itemDragEnable = _defaultItemDragEnable,
     double mainAxisSpacing = 0.0,
     double crossAxisSpacing = 0.0,
@@ -406,6 +409,7 @@ class ReorderableGridView extends StatefulWidget {
     this.proxyDecorator,
     this.autoScroll,
     this.onReorderStart,
+    this.onWillReorder,
   })  : gridDelegate = SliverGridDelegateWithMaxCrossAxisExtent(
           maxCrossAxisExtent: maxCrossAxisExtent,
           mainAxisSpacing: mainAxisSpacing,
@@ -482,6 +486,9 @@ class ReorderableGridView extends StatefulWidget {
 
   /// {@macro flutter.widgets.reorderable_list.onReorder}
   final ReorderCallback onReorder;
+
+  /// {@macro flutter.widgets.reorderable_list.onWillReorder}
+  final ReorderCallback? onWillReorder;
 
   /// {@macro flutter.widgets.reorderable_list.onReorderStart}
   final void Function(int index)? onReorderStart;
@@ -646,6 +653,7 @@ class ReorderableGridViewState extends State<ReorderableGridView> {
             itemCount: widget.itemCount,
             onReorder: widget.onReorder,
             onReorderStart: widget.onReorderStart,
+            onWillReorder: widget.onWillReorder,
             proxyDecorator: widget.proxyDecorator ?? _proxyDecorator,
             autoScroll: widget.autoScroll ??
                 widget.physics is! NeverScrollableScrollPhysics,
