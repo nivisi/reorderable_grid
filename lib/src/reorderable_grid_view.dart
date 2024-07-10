@@ -259,6 +259,9 @@ class ReorderableGridView extends StatefulWidget {
     this.autoScroll,
     this.onReorderStart,
     this.onWillReorder,
+    this.reorderAnimationCurve,
+    this.reorderDuration,
+    this.positionCurve,
   })  : assert(
           children.every((Widget w) => w.key != null),
           'All children of this widget must have a key.',
@@ -311,6 +314,9 @@ class ReorderableGridView extends StatefulWidget {
     this.autoScroll,
     this.onReorderStart,
     this.onWillReorder,
+    this.reorderAnimationCurve,
+    this.reorderDuration,
+    this.positionCurve,
   })  : assert(itemCount >= 0),
         super(key: key);
 
@@ -355,6 +361,9 @@ class ReorderableGridView extends StatefulWidget {
     this.proxyDecorator,
     this.autoScroll,
     this.onReorderStart,
+    this.reorderAnimationCurve,
+    this.reorderDuration,
+    this.positionCurve,
   })  : gridDelegate = SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: crossAxisCount,
           mainAxisSpacing: mainAxisSpacing,
@@ -410,6 +419,9 @@ class ReorderableGridView extends StatefulWidget {
     this.autoScroll,
     this.onReorderStart,
     this.onWillReorder,
+    this.reorderAnimationCurve,
+    this.reorderDuration,
+    this.positionCurve,
   })  : gridDelegate = SliverGridDelegateWithMaxCrossAxisExtent(
           maxCrossAxisExtent: maxCrossAxisExtent,
           mainAxisSpacing: mainAxisSpacing,
@@ -499,6 +511,10 @@ class ReorderableGridView extends StatefulWidget {
   /// Overrides if autoscrolling is enabled. Defaults to false if `physics` is
   /// [NeverScrollableScrollPhysics]
   final bool? autoScroll;
+
+  final Curve? reorderAnimationCurve;
+  final Duration? reorderDuration;
+  final Curve? positionCurve;
 
   @override
   ReorderableGridViewState createState() => ReorderableGridViewState();
@@ -659,6 +675,9 @@ class ReorderableGridViewState extends State<ReorderableGridView> {
                 widget.physics is! NeverScrollableScrollPhysics,
             scrollDirection: widget.scrollDirection,
             reverse: widget.reverse,
+            reorderAnimationCurve: widget.reorderAnimationCurve,
+            reorderDuration: widget.reorderDuration,
+            positionCurve: widget.positionCurve,
           ),
         ),
       ],

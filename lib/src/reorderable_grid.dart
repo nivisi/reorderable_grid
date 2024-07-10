@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 /// {@template reorderable_grid_view.reorderable_grid}
 /// A scrolling container that allows the user to interactively reorder the
@@ -55,6 +56,8 @@ class ReorderableGrid extends StatefulWidget {
     this.autoScroll,
     this.onReorderStart,
     this.onWillReorder,
+    this.reorderAnimationCurve,
+    this.positionCurve,
   })  : assert(itemCount >= 0),
         super(key: key);
 
@@ -140,6 +143,17 @@ class ReorderableGrid extends StatefulWidget {
   /// Overrides if autoscrolling is enabled. Defaults to false if `physics` is
   /// [NeverScrollableScrollPhysics]
   final bool? autoScroll;
+
+  /// {@template reorderable_grid_view.onWillReorder}
+  /// Curve that is used for the reorder animation. Defaults to [Curves.easeInOut].
+  ///
+  /// See also:
+  ///
+  ///   * [positionCurve], the curve used for the item position animation.
+  /// {@endtemplate}
+  final Curve? reorderAnimationCurve;
+
+  final Curve? positionCurve;
 
   /// The state from the closest instance of this class that encloses the given
   /// context.
@@ -282,7 +296,10 @@ class ReorderableGridState extends State<ReorderableGrid> {
             reverse: widget.reverse,
             autoScroll: widget.autoScroll ??
                 widget.physics is! NeverScrollableScrollPhysics,
+            onWillReorder: widget.onWillReorder,
             scrollDirection: widget.scrollDirection,
+            reorderAnimationCurve: widget.reorderAnimationCurve,
+            positionCurve: widget.positionCurve,
           ),
         ),
       ],
@@ -327,6 +344,9 @@ class SliverReorderableGrid extends StatefulWidget {
     this.proxyDecorator,
     this.autoScroll = true,
     this.scrollDirection = Axis.vertical,
+    this.reorderAnimationCurve,
+    this.reorderDuration,
+    this.positionCurve,
   })  : assert(itemCount >= 0),
         super(key: key);
 
@@ -359,6 +379,11 @@ class SliverReorderableGrid extends StatefulWidget {
 
   /// {@macro flutter.widgets.scroll_view.scrollDirection}
   final Axis scrollDirection;
+
+  /// The curve
+  final Curve? reorderAnimationCurve;
+  final Curve? positionCurve;
+  final Duration? reorderDuration;
 
   @override
   SliverReorderableGridState createState() => SliverReorderableGridState();
@@ -549,6 +574,7 @@ class SliverReorderableGridState extends State<SliverReorderableGrid>
       onDropCompleted: _dropCompleted,
       proxyDecorator: widget.proxyDecorator,
       tickerProvider: this,
+      positionCurve: widget.positionCurve,
     );
     _dragInfo!.startDrag();
 
@@ -764,6 +790,8 @@ class SliverReorderableGridState extends State<SliverReorderableGrid>
       index: index,
       capturedThemes:
           InheritedTheme.capture(from: context, to: overlay.context),
+      reorderAnimationCurve: widget.reorderAnimationCurve,
+      reorderDuration: widget.reorderDuration,
       child: child,
     );
   }
@@ -789,22 +817,31 @@ class _ReorderableItem extends StatefulWidget {
     required this.index,
     required this.child,
     required this.capturedThemes,
+    this.reorderAnimationCurve,
+    this.reorderDuration,
   }) : super(key: key);
 
   final int index;
   final Widget child;
   final CapturedThemes capturedThemes;
+  final Curve? reorderAnimationCurve;
+  final Duration? reorderDuration;
 
   @override
   _ReorderableItemState createState() => _ReorderableItemState();
 }
 
 class _ReorderableItemState extends State<_ReorderableItem> {
+  static const _defaultCurve = Curves.easeIn;
+  static const _defaultDuration = Duration(milliseconds: 250);
+
   late SliverReorderableGridState _listState;
 
   Offset _startOffset = Offset.zero;
   Offset _targetOffset = Offset.zero;
   AnimationController? _offsetAnimation;
+  Curve _animationCurve = _defaultCurve;
+  Duration _reorderDuration = const Duration(milliseconds: 250);
 
   Key get key => widget.key!;
   int get index => widget.index;
@@ -822,9 +859,12 @@ class _ReorderableItemState extends State<_ReorderableItem> {
 
   @override
   void initState() {
+    super.initState();
+
     _listState = SliverReorderableGrid.of(context);
     _listState._registerItem(this);
-    super.initState();
+    _animationCurve = widget.reorderAnimationCurve ?? _defaultCurve;
+    _reorderDuration = widget.reorderDuration ?? _defaultDuration;
   }
 
   @override
@@ -837,9 +877,17 @@ class _ReorderableItemState extends State<_ReorderableItem> {
   @override
   void didUpdateWidget(covariant _ReorderableItem oldWidget) {
     super.didUpdateWidget(oldWidget);
+
     if (oldWidget.index != widget.index) {
       _listState._unregisterItem(oldWidget.index, this);
       _listState._registerItem(this);
+    }
+
+    if (oldWidget.reorderAnimationCurve != widget.reorderAnimationCurve) {
+      _animationCurve = widget.reorderAnimationCurve ?? _defaultCurve;
+    }
+    if (oldWidget.reorderDuration != widget.reorderDuration) {
+      _reorderDuration = widget.reorderDuration ?? _defaultDuration;
     }
   }
 
@@ -864,7 +912,7 @@ class _ReorderableItemState extends State<_ReorderableItem> {
   Offset get offset {
     if (_offsetAnimation != null) {
       final double animValue =
-          Curves.easeInOut.transform(_offsetAnimation!.value);
+          _animationCurve.transform(_offsetAnimation!.value);
       return Offset.lerp(_startOffset, _targetOffset, animValue)!;
     }
     return _targetOffset;
@@ -876,13 +924,14 @@ class _ReorderableItemState extends State<_ReorderableItem> {
     final Offset newTargetOffset = _listState._calculateNextDragOffset(index);
 
     if (newTargetOffset == _targetOffset) return;
+    final currentOffset = offset;
     _targetOffset = newTargetOffset;
 
     if (animate) {
       if (_offsetAnimation == null) {
         _offsetAnimation = AnimationController(
           vsync: _listState,
-          duration: const Duration(milliseconds: 250),
+          duration: _reorderDuration,
         )
           ..addListener(rebuild)
           ..addStatusListener((AnimationStatus status) {
@@ -894,8 +943,9 @@ class _ReorderableItemState extends State<_ReorderableItem> {
           })
           ..forward();
       } else {
-        _startOffset = offset;
-        _offsetAnimation!.forward(from: 0.0);
+        _startOffset = currentOffset;
+
+        _offsetAnimation!.forward(from: 0);
       }
     } else {
       if (_offsetAnimation != null) {
@@ -1056,6 +1106,7 @@ class _DragInfo extends Drag {
     this.onDropCompleted,
     this.proxyDecorator,
     required this.tickerProvider,
+    this.positionCurve,
   }) {
     final RenderBox itemRenderBox =
         item.context.findRenderObject()! as RenderBox;
@@ -1075,6 +1126,7 @@ class _DragInfo extends Drag {
   final VoidCallback? onDropCompleted;
   final ReorderItemProxyDecorator? proxyDecorator;
   final TickerProvider tickerProvider;
+  final Curve? positionCurve;
 
   late SliverReorderableGridState listState;
   late int index;
@@ -1109,9 +1161,28 @@ class _DragInfo extends Drag {
     onUpdate?.call(this, dragPosition, details.delta);
   }
 
+  Duration _calculateBackAnimationDuration() {
+    Offset dragPosition = this.dragPosition;
+    Offset origin = Offset.zero;
+    double distance = (dragPosition - origin).distance;
+
+    const baseDuration = 350;
+    const minDuration = 25;
+    const maxDuration = 800;
+
+    int ms = (baseDuration * sqrt(distance / 100)).round();
+    ms = ms.clamp(minDuration, maxDuration);
+
+    return Duration(milliseconds: ms);
+  }
+
   @override
   void end(DragEndDetails details) {
-    _proxyAnimation!.reverse();
+    _proxyAnimation!.animateBack(
+      .0,
+      duration: _calculateBackAnimationDuration(),
+    );
+
     onEnd?.call(this);
   }
 
@@ -1137,6 +1208,7 @@ class _DragInfo extends Drag {
         animation: _proxyAnimation!,
         position: dragPosition - dragOffset - _overlayOrigin(context),
         proxyDecorator: proxyDecorator,
+        positionCurve: positionCurve,
         child: child,
       ),
     );
@@ -1159,6 +1231,7 @@ class _DragItemProxy extends StatelessWidget {
     required this.size,
     required this.animation,
     required this.proxyDecorator,
+    required this.positionCurve,
   }) : super(key: key);
 
   final SliverReorderableGridState listState;
@@ -1168,12 +1241,15 @@ class _DragItemProxy extends StatelessWidget {
   final Size size;
   final AnimationController animation;
   final ReorderItemProxyDecorator? proxyDecorator;
+  final Curve? positionCurve;
 
   @override
   Widget build(BuildContext context) {
     final Widget proxyChild =
         proxyDecorator?.call(child, index, animation.view) ?? child;
     final Offset overlayOrigin = _overlayOrigin(context);
+
+    final curve = positionCurve ?? Curves.easeOut;
 
     return MediaQuery(
       // Remove the top padding so that any nested grid views in the item
@@ -1185,8 +1261,10 @@ class _DragItemProxy extends StatelessWidget {
           Offset effectivePosition = position;
           final Offset? dropPosition = listState._finalDropPosition;
           if (dropPosition != null) {
-            effectivePosition = Offset.lerp(dropPosition - overlayOrigin,
-                effectivePosition, Curves.easeOut.transform(animation.value))!;
+            effectivePosition = Offset.lerp(
+                effectivePosition,
+                dropPosition - overlayOrigin,
+                curve.transform(1 - animation.value))!;
           }
           return Positioned(
             left: effectivePosition.dx,
