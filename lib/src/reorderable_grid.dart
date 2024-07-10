@@ -54,6 +54,7 @@ class ReorderableGrid extends StatefulWidget {
     this.clipBehavior = Clip.hardEdge,
     this.autoScroll,
     this.onReorderStart,
+    this.onWillReorder,
   })  : assert(itemCount >= 0),
         super(key: key);
 
@@ -77,6 +78,16 @@ class ReorderableGrid extends StatefulWidget {
 
   /// {@macro flutter.widgets.reorderable_list.onReorderStart}
   final void Function(int index)? onReorderStart;
+
+  /// {@template reorderable_grid_view.onWillReorder}
+  /// A callback that is called when an item is ready to be moved
+  /// to a new position in the grid.
+  ///
+  /// This callback is useful for playing haptic feedback or any other feedback.
+  ///
+  /// **Must not** reorder items in the grid yet. For this, see [onReorder].
+  /// {@endtemplate}
+  final ReorderCallback? onWillReorder;
 
   /// {@macro flutter.widgets.reorderable_list.proxyDecorator}
   final ReorderItemProxyDecorator? proxyDecorator;
@@ -331,8 +342,7 @@ class SliverReorderableGrid extends StatefulWidget {
   /// {@macro flutter.widgets.reorderable_list.onReorderStart}
   final void Function(int index)? onReorderStart;
 
-  /// A callback that is called when an item is ready to be moved
-  /// to a new position in the grid.
+  /// {@macro reorderable_grid_view.onWillReorder}
   final ReorderCallback? onWillReorder;
 
   /// {@macro flutter.widgets.reorderable_list.proxyDecorator}
