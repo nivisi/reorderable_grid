@@ -265,6 +265,8 @@ void main() {
       (WidgetTester tester) async {
     const int itemCount = 5;
     int onReorderCallCount = 0;
+    int onWillReorderCallCount = 0;
+
     final List<int> items = List<int>.generate(itemCount, (int index) => index);
 
     void handleReorder(int fromIndex, int toIndex) {
@@ -273,6 +275,10 @@ void main() {
         toIndex -= 1;
       }
       items.insert(toIndex, items.removeAt(fromIndex));
+    }
+
+    void handleOnWillReorder(int fromIndex, int toIndex) {
+      onWillReorderCallCount += 1;
     }
 
     // The list has five elements of height 100
@@ -294,6 +300,7 @@ void main() {
             );
           },
           onReorder: handleReorder,
+          onWillReorder: handleOnWillReorder,
         ),
       ),
     );
@@ -310,6 +317,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(onReorderCallCount, 1);
+    expect(onWillReorderCallCount, 1);
     expect(items, orderedEquals(<int>[1, 0, 2, 3, 4]));
   });
 
@@ -318,12 +326,17 @@ void main() {
       (WidgetTester tester) async {
     const int itemCount = 5;
     int onReorderCallCount = 0;
+    int onWillReorderCallCount = 0;
     final List<int> items = List<int>.generate(itemCount, (int index) => index);
 
     void handleReorder(int fromIndex, int toIndex) {
       onReorderCallCount += 1;
       final item = items.removeAt(fromIndex);
       items.insert(toIndex, item);
+    }
+
+    void handleOnWillReorder(int fromIndex, int toIndex) {
+      onWillReorderCallCount += 1;
     }
 
     // The list has five elements of height 100
@@ -345,9 +358,10 @@ void main() {
             );
           },
           onReorder: handleReorder,
+          onWillReorder: handleOnWillReorder,
         ),
       ),
-      const Duration(milliseconds: 100),
+      duration: const Duration(milliseconds: 100),
     );
     await tester.pumpAndSettle();
 
@@ -363,6 +377,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(onReorderCallCount, 1);
+    expect(onWillReorderCallCount, 1);
     expect(items, orderedEquals(<int>[1, 0, 2, 3, 4]));
   });
 }
