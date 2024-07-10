@@ -331,7 +331,8 @@ class SliverReorderableGrid extends StatefulWidget {
   /// {@macro flutter.widgets.reorderable_list.onReorderStart}
   final void Function(int index)? onReorderStart;
 
-  /// {@macro flutter.widgets.reorderable_list.onWillReorder}
+  /// A callback that is called when an item is ready to be moved
+  /// to a new position in the grid.
   final ReorderCallback? onWillReorder;
 
   /// {@macro flutter.widgets.reorderable_list.proxyDecorator}

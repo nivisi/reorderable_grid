@@ -487,7 +487,8 @@ class ReorderableGridView extends StatefulWidget {
   /// {@macro flutter.widgets.reorderable_list.onReorder}
   final ReorderCallback onReorder;
 
-  /// {@macro flutter.widgets.reorderable_list.onWillReorder}
+  /// A callback that is called when an item is ready to be moved
+  /// to a new position in the grid.
   final ReorderCallback? onWillReorder;
 
   /// {@macro flutter.widgets.reorderable_list.onReorderStart}
